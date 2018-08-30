@@ -2,9 +2,7 @@ package admin_tabs
 
 import (
 	"github.com/aghape/admin"
-	"github.com/aghape/core"
-	"github.com/aghape/core/utils"
-	"github.com/moisespsena-go/aorm"
+	"github.com/aghape/plug"
 	"github.com/moisespsena/go-path-helpers"
 )
 
@@ -13,44 +11,23 @@ var (
 	KEY_TABS = PKG + ".tabs"
 	KEY_TAB  = PKG + ".tab"
 	THEME    = "tabbed"
+	SCHEME_CATEGORY = PKG
+	DEFAULT_SCHEME_CATEGORY = PKG + ".default"
 )
 
-func PrepareResource(res *admin.Resource, tabs Tabs, defaultTab *Tab) {
-	index := res.Router.FindHandler("GET", admin.P_INDEX).(*admin.RouteHandler)
-	indexHandler := index.Handle
-
-	if defaultTab != nil {
-		index.Handle = func(c *admin.Context) {
-			c.Data().Set(KEY_TAB, defaultTab)
-			indexHandler(c)
+func PrepareResource(res *admin.Resource) *Tabs {
+	tabs := &Tabs{Resource: res}
+	res.On(admin.E_SCHEME_ADDED, func(e plug.EventInterface) {
+		s := e.(*admin.SchemeEvent).Scheme
+		scat := SCHEME_CATEGORY
+		for _, cat := range s.Categories {
+			if cat == scat {
+				tabs.Register(s)
+				return
+			}
 		}
-	}
-
-	scopesMap := &TabsData{tabs, make(map[string]*Tab)}
-
-	for _, scope := range tabs {
-		if scope.Path == "" {
-			scope.Path = utils.ToParamString(scope.Title)
-		}
-		if scope.TitleKey == "" {
-			scope.TitleKey = res.I18nPrefix + ".tabs." + scope.Path
-		}
-		scopesMap.ByPath[scope.Path] = scope
-	}
-
-	res.Data.Set(KEY_TABS, scopesMap)
-
-	for _, tab := range tabs {
-		res.Router.Get("/"+tab.Path, TabHandler(res, index.Config, indexHandler, tab))
-	}
-
-	res.DefaultFilter(func(context *core.Context, db *aorm.DB) *aorm.DB {
-		scopePath := GetTabPath(context)
-		if scope, ok := scopesMap.ByPath[scopePath]; ok {
-			return scope.Handler(res, context, db)
-		}
-		return db
 	})
-
+	res.Data.Set(KEY_TABS, tabs)
 	res.UseTheme(THEME)
+	return tabs
 }

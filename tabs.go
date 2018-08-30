@@ -3,6 +3,7 @@ package admin_tabs
 import (
 	"github.com/aghape/admin"
 	"github.com/aghape/core"
+	"github.com/aghape/core/utils"
 	"github.com/moisespsena-go/aorm"
 )
 
@@ -10,8 +11,14 @@ type Tab struct {
 	Title    string
 	Path     string
 	TitleKey string
-	Handler  func(res *admin.Resource, context *core.Context, db *aorm.DB) *aorm.DB
+	Handler  func(t *Tabs, res *admin.Resource, context *core.Context, db *aorm.DB) *aorm.DB
 	Default  bool
+	Enabled  func(tabs *Tabs, ctx *admin.Context) bool
+	scheme   *admin.Scheme
+}
+
+func (s *Tab) Scheme() *admin.Scheme {
+	return s.scheme
 }
 
 func (s *Tab) URL(res *admin.Resource, context *core.Context) string {
@@ -21,11 +28,59 @@ func (s *Tab) URL(res *admin.Resource, context *core.Context) string {
 	return res.GetContextIndexURI(context) + "/" + s.Path
 }
 
-type Tabs []*Tab
+type Tabs struct {
+	Resource   *admin.Resource
+	Tabs       []*Tab
+	ByPath     map[string]*Tab
+	defaultTab *Tab
+}
 
-type TabsData struct {
-	Tabs   Tabs
-	ByPath map[string]*Tab
+func (t *Tabs) interseptor(chain *admin.Chain) {
+	ctx := chain.Context
+	var indexTabs []*Tab
+	var currentTab *Tab
+	for _, tab := range t.Tabs {
+		if tab.Enabled == nil || tab.Enabled(t, ctx) {
+			indexTabs = append(indexTabs, tab)
+		}
+	}
+	if currentTab == nil {
+		currentTab = t.defaultTab
+	}
+	ctx.Data().Set(KEY_TABS, indexTabs)
+	ctx.Data().Set(KEY_TAB, currentTab)
+	chain.Pass()
+}
+func (t *Tabs) Register(scheme *admin.Scheme) {
+	var defaul bool
+	for _, cat := range scheme.Categories {
+		if cat == DEFAULT_SCHEME_CATEGORY {
+			defaul = true
+			break
+		}
+	}
+	tab := &Tab{
+		Title:    scheme.SchemeName,
+		TitleKey: scheme.I18nKey(),
+		scheme:   scheme,
+		Path:     scheme.Path(),
+		Default:  defaul,
+	}
+	if t.ByPath == nil {
+		t.ByPath = map[string]*Tab{}
+	}
+	if tab.Path == "" {
+		tab.Path = utils.ToParamString(tab.Title)
+	}
+
+	if tab.TitleKey == "" {
+		tab.TitleKey = t.Resource.I18nPrefix + ".tabs." + tab.Path
+	}
+
+	if !tab.Default {
+		t.ByPath[tab.Path] = tab
+	}
+	t.Tabs = append(t.Tabs, tab)
 }
 
 func GetTabPath(context *core.Context) string {

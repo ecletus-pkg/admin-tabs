@@ -37,13 +37,13 @@ func (p *Plugin) Init(options *plug.Options) {
 			}
 			return v.(interfaceStringGetter).GetInterface(KEY_TAB).(*Tab)
 		})
-		e.Admin.RegisterFuncMap("admin_tabs", func(v interface{}) *TabsData {
+		e.Admin.RegisterFuncMap("admin_tabs", func(v interface{}) []*Tab {
 			if vi, ok := v.(interfaceGetter); ok {
-				return vi.GetInterface(KEY_TABS).(*TabsData)
+				return vi.GetInterface(KEY_TABS).([]*Tab)
 			} else if vi, ok := v.(interfaceStringDefaultsGetter); ok {
-				return vi.GetInterface(KEY_TABS).(*TabsData)
+				return vi.GetInterface(KEY_TABS).([]*Tab)
 			}
-			return v.(interfaceStringGetter).GetInterface(KEY_TABS).(*TabsData)
+			return v.(interfaceStringGetter).GetInterface(KEY_TABS).([]*Tab)
 		})
 	})
 }
