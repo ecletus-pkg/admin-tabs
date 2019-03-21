@@ -1,8 +1,8 @@
 package admin_tabs
 
 import (
-	"github.com/aghape-pkg/admin"
-	"github.com/aghape/plug"
+	"github.com/ecletus-pkg/admin"
+	"github.com/ecletus/plug"
 )
 
 type Plugin struct {
