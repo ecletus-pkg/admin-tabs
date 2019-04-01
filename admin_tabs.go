@@ -3,7 +3,7 @@ package admin_tabs
 import (
 	"github.com/ecletus/admin"
 	"github.com/ecletus/plug"
-	"github.com/moisespsena/go-path-helpers"
+	"github.com/moisespsena-go/path-helpers"
 )
 
 var (
