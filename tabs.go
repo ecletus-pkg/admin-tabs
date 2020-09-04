@@ -5,6 +5,7 @@ import (
 	"github.com/ecletus/core"
 	"github.com/ecletus/core/utils"
 	"github.com/moisespsena-go/aorm"
+	"context"
 )
 
 type Tab struct {
@@ -47,8 +48,8 @@ func (t *Tabs) interseptor(chain *admin.Chain) {
 	if currentTab == nil {
 		currentTab = t.defaultTab
 	}
-	ctx.Data().Set(KEY_TABS, indexTabs)
-	ctx.Data().Set(KEY_TAB, currentTab)
+	ctx.SetValue(KEY_TABS, indexTabs)
+	ctx.SetValue(KEY_TAB, currentTab)
 	chain.Pass()
 }
 func (t *Tabs) Register(scheme *admin.Scheme) {
@@ -83,15 +84,15 @@ func (t *Tabs) Register(scheme *admin.Scheme) {
 	t.Tabs = append(t.Tabs, tab)
 }
 
-func GetTabPath(context *core.Context) string {
-	if scope, ok := context.Data().GetOk(KEY_TAB); ok {
-		return scope.(*Tab).Path
+func GetTabPath(ctx context.Context) string {
+	if tab := GetTab(ctx); tab != nil {
+		return tab.Path
 	}
 	return ""
 }
 
-func GetTab(context *core.Context) *Tab {
-	if tab, ok := context.Data().GetOk(KEY_TAB); ok {
+func GetTab(ctx context.Context) *Tab {
+	if tab := ctx.Value(KEY_TAB); tab != nil {
 		return tab.(*Tab)
 	}
 	return nil
@@ -100,8 +101,8 @@ func GetTab(context *core.Context) *Tab {
 func TabHandler(res *admin.Resource, config *admin.RouteConfig, indexHandler admin.Handler, scope *Tab) *admin.RouteHandler {
 	return admin.NewHandler(func(c *admin.Context) {
 		c.Breadcrumbs().Append(core.NewBreadcrumb(res.GetContextIndexURI(c.Context), res.GetLabelKey(true), ""))
-		c.Data().Set("page_title", c.T(scope.TitleKey, scope.Title))
-		c.Data().Set(KEY_TAB, scope)
+		c.SetValue("page_title", c.T(scope.TitleKey, scope.Title))
+		c.SetValue(KEY_TAB, scope)
 		indexHandler(c)
 	}, config)
 }
